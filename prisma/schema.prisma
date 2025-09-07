@@ -1,0 +1,562 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Enums
+enum Role {
+  ADMIN
+  PASTOR
+  TESOURARIA
+  COORD_GRUPOS
+  RECEPCAO
+  MEMBRO
+}
+
+enum Gender {
+  MASCULINO
+  FEMININO
+  OUTRO
+}
+
+enum MaritalStatus {
+  SOLTEIRO
+  CASADO
+  DIVORCIADO
+  VIUVO
+  UNIAO_ESTAVEL
+}
+
+enum AttendanceStatus {
+  PRESENTE
+  AUSENTE
+  JUSTIFICADO
+}
+
+enum ServiceType {
+  CULTO
+  CELULA
+  EVENTO
+  REUNIAO
+}
+
+enum OfferingOrigin {
+  CULTO
+  CELULA
+  CAMPANHA
+  DIZIMO
+  OFERTA
+}
+
+enum PaymentMethod {
+  DINHEIRO
+  CARTAO
+  PIX
+  TRANSFERENCIA
+}
+
+enum PixStatus {
+  PENDING
+  PAID
+  EXPIRED
+  CANCELLED
+}
+
+enum GroupType {
+  CELULA
+  MINISTERIO
+  DEPARTAMENTO
+  CLASSE
+}
+
+enum MessageStatus {
+  PENDING
+  SENT
+  DELIVERED
+  FAILED
+  OPENED
+}
+
+enum MessageProvider {
+  MAILGUN
+  WHATSAPP
+}
+
+// Models
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  password      String
+  role          Role      @default(MEMBRO)
+  personId      String?   @unique
+  person        Person?   @relation(fields: [personId], references: [id])
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  lastLoginAt   DateTime?
+  isActive      Boolean   @default(true)
+  
+  // Audit fields
+  createdBy     String?
+  updatedBy     String?
+  
+  // Relations
+  auditLogs     AuditLog[]
+  
+  @@map("users")
+}
+
+model Person {
+  id                String         @id @default(cuid())
+  firstName         String
+  lastName          String
+  fullName          String
+  email             String?        @unique
+  phone             String?
+  birthDate         DateTime?
+  gender            Gender?
+  maritalStatus     MaritalStatus?
+  address           String?
+  city              String?
+  state             String?
+  zipCode           String?
+  photo             String?
+  notes             String?
+  isActive          Boolean        @default(true)
+  joinDate          DateTime?
+  baptismDate       DateTime?
+  membershipDate    DateTime?
+  
+  // Family relations
+  householdId       String?
+  household         Household?     @relation(fields: [householdId], references: [id])
+  
+  // User relation
+  user              User?
+  
+  // Timestamps
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  createdBy         String?
+  updatedBy         String?
+  
+  // Relations
+  attendances       Attendance[]
+  groupMembers      GroupMember[]
+  groupAttendances  GroupAttendance[]
+  donations         Donation[]
+  eventRegistrations EventRegistration[]
+  volunteers        Volunteer[]
+  messageRecipients MessageRecipient[]
+  ledGroups         Group[]        @relation("GroupLeader")
+  
+  @@map("people")
+}
+
+model Household {
+  id          String   @id @default(cuid())
+  name        String
+  address     String?
+  city        String?
+  state       String?
+  zipCode     String?
+  phone       String?
+  notes       String?
+  isActive    Boolean  @default(true)
+  
+  // Timestamps
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdBy   String?
+  updatedBy   String?
+  
+  // Relations
+  members     Person[]
+  
+  @@map("households")
+}
+
+model Service {
+  id          String      @id @default(cuid())
+  name        String
+  description String?
+  type        ServiceType
+  date        DateTime
+  startTime   DateTime
+  endTime     DateTime?
+  location    String?
+  capacity    Int?
+  isActive    Boolean     @default(true)
+  
+  // Campus relation
+  campusId    String?
+  campus      Campus?     @relation(fields: [campusId], references: [id])
+  
+  // Timestamps
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  createdBy   String?
+  updatedBy   String?
+  
+  // Relations
+  attendances Attendance[]
+  offerings   Offering[]
+  
+  @@map("services")
+}
+
+model Attendance {
+  id        String           @id @default(cuid())
+  personId  String
+  serviceId String
+  status    AttendanceStatus @default(PRESENTE)
+  notes     String?
+  
+  // Relations
+  person    Person  @relation(fields: [personId], references: [id])
+  service   Service @relation(fields: [serviceId], references: [id])
+  
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy String?
+  updatedBy String?
+  
+  @@unique([personId, serviceId])
+  @@map("attendances")
+}
+
+model Group {
+  id          String    @id @default(cuid())
+  name        String
+  description String?
+  type        GroupType
+  capacity    Int?
+  location    String?
+  meetingDay  Int?      // 0-6 (Sunday-Saturday)
+  meetingTime String?   // HH:MM format
+  isActive    Boolean   @default(true)
+  
+  // Leader
+  leaderId    String?
+  leader      Person?   @relation("GroupLeader", fields: [leaderId], references: [id])
+  
+  // Campus relation
+  campusId    String?
+  campus      Campus?   @relation(fields: [campusId], references: [id])
+  
+  // Timestamps
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  createdBy   String?
+  updatedBy   String?
+  
+  // Relations
+  members     GroupMember[]
+  attendances GroupAttendance[]
+  
+  @@map("groups")
+}
+
+model GroupMember {
+  id        String   @id @default(cuid())
+  groupId   String
+  personId  String
+  joinDate  DateTime @default(now())
+  isActive  Boolean  @default(true)
+  
+  // Relations
+  group     Group    @relation(fields: [groupId], references: [id])
+  person    Person   @relation(fields: [personId], references: [id])
+  
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy String?
+  updatedBy String?
+  
+  @@unique([groupId, personId])
+  @@map("group_members")
+}
+
+model GroupAttendance {
+  id        String           @id @default(cuid())
+  groupId   String
+  personId  String
+  date      DateTime
+  status    AttendanceStatus @default(PRESENTE)
+  notes     String?
+  
+  // Relations
+  group     Group   @relation(fields: [groupId], references: [id])
+  person    Person  @relation(fields: [personId], references: [id])
+  
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy String?
+  updatedBy String?
+  
+  @@unique([groupId, personId, date])
+  @@map("group_attendances")
+}
+
+model Offering {
+  id            String        @id @default(cuid())
+  date          DateTime
+  origin        OfferingOrigin
+  method        PaymentMethod
+  amount        Int           // Amount in cents
+  description   String?
+  notes         String?
+  
+  // Service relation
+  serviceId     String?
+  service       Service?      @relation(fields: [serviceId], references: [id])
+  
+  // Campus relation
+  campusId      String?
+  campus        Campus?       @relation(fields: [campusId], references: [id])
+  
+  // PIX fields
+  pixTxId       String?       @unique
+  pixStatus     PixStatus?
+  pixQrCode     String?
+  pixCopyPaste  String?
+  
+  // Timestamps
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  createdBy     String?
+  updatedBy     String?
+  
+  // Relations
+  donations     Donation[]
+  
+  @@map("offerings")
+}
+
+model Donation {
+  id          String        @id @default(cuid())
+  personId    String
+  offeringId  String?
+  amount      Int           // Amount in cents
+  method      PaymentMethod
+  date        DateTime
+  description String?
+  notes       String?
+  
+  // Receipt fields
+  receiptNumber String?     @unique
+  receiptUrl    String?
+  
+  // Relations
+  person      Person       @relation(fields: [personId], references: [id])
+  offering    Offering?    @relation(fields: [offeringId], references: [id])
+  
+  // Timestamps
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  createdBy   String?
+  updatedBy   String?
+  
+  @@map("donations")
+}
+
+model Event {
+  id          String    @id @default(cuid())
+  name        String
+  description String?
+  startDate   DateTime
+  endDate     DateTime?
+  location    String?
+  capacity    Int?
+  price       Int?      // Price in cents
+  isActive    Boolean   @default(true)
+  
+  // Campus relation
+  campusId    String?
+  campus      Campus?   @relation(fields: [campusId], references: [id])
+  
+  // Timestamps
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  createdBy   String?
+  updatedBy   String?
+  
+  // Relations
+  registrations EventRegistration[]
+  volunteers    Volunteer[]
+  
+  @@map("events")
+}
+
+model EventRegistration {
+  id        String   @id @default(cuid())
+  eventId   String
+  personId  String
+  status    String   @default("CONFIRMED")
+  notes     String?
+  
+  // Relations
+  event     Event    @relation(fields: [eventId], references: [id])
+  person    Person   @relation(fields: [personId], references: [id])
+  
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy String?
+  updatedBy String?
+  
+  @@unique([eventId, personId])
+  @@map("event_registrations")
+}
+
+model Volunteer {
+  id        String   @id @default(cuid())
+  eventId   String
+  personId  String
+  role      String
+  notes     String?
+  
+  // Relations
+  event     Event    @relation(fields: [eventId], references: [id])
+  person    Person   @relation(fields: [personId], references: [id])
+  
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  createdBy String?
+  updatedBy String?
+  
+  @@unique([eventId, personId])
+  @@map("volunteers")
+}
+
+model Campus {
+  id        String    @id @default(cuid())
+  name      String
+  address   String?
+  city      String?
+  state     String?
+  zipCode   String?
+  phone     String?
+  isActive  Boolean   @default(true)
+  
+  // Timestamps
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  createdBy String?
+  updatedBy String?
+  
+  // Relations
+  services  Service[]
+  groups    Group[]
+  offerings Offering[]
+  events    Event[]
+  
+  @@map("campuses")
+}
+
+model MessageTemplate {
+  id          String   @id @default(cuid())
+  name        String
+  subject     String?
+  content     String
+  type        String   // welcome, post_service, missed_you, schedule_confirmation
+  isActive    Boolean  @default(true)
+  
+  // Timestamps
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdBy   String?
+  updatedBy   String?
+  
+  // Relations
+  messages    Message[]
+  
+  @@map("message_templates")
+}
+
+model Message {
+  id          String        @id @default(cuid())
+  templateId  String?
+  subject     String?
+  content     String
+  provider    MessageProvider
+  status      MessageStatus @default(PENDING)
+  scheduledAt DateTime?
+  sentAt      DateTime?
+  
+  // Template relation
+  template    MessageTemplate? @relation(fields: [templateId], references: [id])
+  
+  // Timestamps
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  createdBy   String?
+  updatedBy   String?
+  
+  // Relations
+  recipients  MessageRecipient[]
+  
+  @@map("messages")
+}
+
+model MessageRecipient {
+  id        String        @id @default(cuid())
+  messageId String
+  personId  String
+  status    MessageStatus @default(PENDING)
+  sentAt    DateTime?
+  openedAt  DateTime?
+  failedAt  DateTime?
+  errorMsg  String?
+  
+  // Relations
+  message   Message @relation(fields: [messageId], references: [id])
+  person    Person  @relation(fields: [personId], references: [id])
+  
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@unique([messageId, personId])
+  @@map("message_recipients")
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  action    String   // CREATE, UPDATE, DELETE
+  table     String
+  recordId  String
+  oldData   Json?
+  newData   Json?
+  
+  // Relations
+  user      User?    @relation(fields: [userId], references: [id])
+  
+  // Timestamps
+  createdAt DateTime @default(now())
+  
+  @@map("audit_logs")
+}
+
+model FeatureFlag {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  isEnabled Boolean  @default(false)
+  
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("feature_flags")
+}
