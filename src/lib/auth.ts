@@ -6,7 +6,7 @@ import { prisma } from './prisma'
 import { AuthUser, ROLE_PERMISSIONS } from '@/types/auth'
 
 export const authOptions: NextAuthOptions = {
-  adapter: PrismaAdapter(prisma) as any,
+
   providers: [
     CredentialsProvider({
       name: 'credentials',
@@ -55,13 +55,7 @@ export const authOptions: NextAuthOptions = {
           data: { lastLoginAt: new Date() }
         })
 
-        return {
-          id: user.id,
-          email: user.email,
-          role: user.role,
-          personId: user.personId,
-          person: user.person
-        } as AuthUser
+        return user
       }
     })
   ],
@@ -69,6 +63,16 @@ export const authOptions: NextAuthOptions = {
     strategy: 'jwt'
   },
   callbacks: {
+    async signIn({ user, account, profile }) {
+      // Se o provedor for credenciais, o usuário já foi validado no authorize
+      if (account?.provider === "credentials") {
+        return true
+      }
+      // Para outros provedores (ex: OAuth), você pode adicionar lógica aqui
+      // para verificar se o usuário já existe e associá-lo ou criar um novo.
+      // Por enquanto, permitimos o login para provedores não-credenciais.
+      return true
+    },
     async jwt({ token, user }) {
       if (user) {
         token.role = (user as AuthUser).role
