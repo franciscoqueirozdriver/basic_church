@@ -1,24 +1,12 @@
+
 'use client'
 
-import { useSession } from 'next-auth/react'
 import { ModernCard, ModernCardContent, ModernCardHeader, ModernCardTitle } from '@/components/ui/ModernCard'
 import { StatCard } from '@/components/ui/StatCard'
-import { 
-  Users, 
-  Calendar, 
-  DollarSign, 
-  TrendingUp,
-  Church,
-  UserPlus,
-  Heart,
-  Activity,
-  Clock,
-  MapPin
-} from 'lucide-react'
+import { ModernButton } from '@/components/ui/ModernButton'
+import { Users, Calendar, DollarSign, Heart, ArrowRight, TrendingUp, TrendingDown } from 'lucide-react'
 
 export default function ModernDashboardPage() {
-  const { data: session } = useSession()
-
   const stats = [
     {
       title: 'Total de Membros',
@@ -31,7 +19,7 @@ export default function ModernDashboardPage() {
       title: 'Presença Média',
       value: '89%',
       change: { value: 5, type: 'increase' as const, period: 'últimos 30 dias' },
-      icon: <Activity className="w-6 h-6" />,
+      icon: <Calendar className="w-6 h-6" />,
       variant: 'success' as const
     },
     {
@@ -50,75 +38,9 @@ export default function ModernDashboardPage() {
     }
   ]
 
-  const recentActivities = [
-    {
-      type: 'member',
-      title: 'Novo membro cadastrado',
-      description: 'Maria Silva se juntou à igreja',
-      time: '2 horas atrás',
-      icon: <UserPlus className="w-5 h-5 text-green-600" />
-    },
-    {
-      type: 'service',
-      title: 'Culto de domingo registrado',
-      description: '234 pessoas presentes',
-      time: '1 dia atrás',
-      icon: <Church className="w-5 h-5 text-blue-600" />
-    },
-    {
-      type: 'offering',
-      title: 'Oferta registrada',
-      description: 'R$ 2.450,00 - Culto da manhã',
-      time: '1 dia atrás',
-      icon: <DollarSign className="w-5 h-5 text-yellow-600" />
-    },
-    {
-      type: 'group',
-      title: 'Reunião de célula',
-      description: 'Célula Esperança - 15 presentes',
-      time: '2 dias atrás',
-      icon: <Heart className="w-5 h-5 text-purple-600" />
-    }
-  ]
-
-  const upcomingEvents = [
-    {
-      title: 'Culto de Oração',
-      date: 'Hoje, 19:30',
-      location: 'Templo Principal',
-      attendees: 45
-    },
-    {
-      title: 'Escola Bíblica Dominical',
-      date: 'Domingo, 09:00',
-      location: 'Salas de Aula',
-      attendees: 120
-    },
-    {
-      title: 'Reunião de Líderes',
-      date: 'Segunda, 20:00',
-      location: 'Sala de Reuniões',
-      attendees: 12
-    }
-  ]
-
   return (
     <div className="space-y-8">
-      {/* Header */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">
-            Olá, {session?.user?.person?.firstName || 'Usuário'}! 👋
-          </h1>
-          <p className="text-gray-600 mt-1">
-            Aqui está um resumo das atividades da sua igreja hoje.
-          </p>
-        </div>
-        <div className="flex items-center gap-2 text-sm text-gray-500">
-          <Clock className="w-4 h-4" />
-          Última atualização: {new Date().toLocaleString('pt-BR')}
-        </div>
-      </div>
+      <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -127,109 +49,85 @@ export default function ModernDashboardPage() {
         ))}
       </div>
 
-      {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Recent Activities */}
-        <div className="lg:col-span-2">
-          <ModernCard variant="elevated">
-            <ModernCardHeader>
-              <ModernCardTitle className="flex items-center gap-2">
-                <TrendingUp className="w-5 h-5 text-blue-600" />
-                Atividades Recentes
-              </ModernCardTitle>
-            </ModernCardHeader>
-            <ModernCardContent>
-              <div className="space-y-4">
-                {recentActivities.map((activity, index) => (
-                  <div key={index} className="flex items-start gap-4 p-4 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors">
-                    <div className="flex-shrink-0 p-2 bg-white rounded-lg shadow-sm">
-                      {activity.icon}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h4 className="font-semibold text-gray-900 text-sm">
-                        {activity.title}
-                      </h4>
-                      <p className="text-gray-600 text-sm mt-1">
-                        {activity.description}
-                      </p>
-                      <p className="text-gray-400 text-xs mt-2">
-                        {activity.time}
-                      </p>
-                    </div>
+      {/* Recent Activity & Quick Actions */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <ModernCard className="lg:col-span-2">
+          <ModernCardHeader>
+            <ModernCardTitle>Atividade Recente</ModernCardTitle>
+          </ModernCardHeader>
+          <ModernCardContent>
+            <ul className="space-y-4">
+              <li className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center">
+                    <Users className="w-4 h-4" />
                   </div>
-                ))}
-              </div>
-            </ModernCardContent>
-          </ModernCard>
-        </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">Novo membro cadastrado</p>
+                    <p className="text-xs text-gray-500">Maria Silva se juntou à igreja</p>
+                  </div>
+                </div>
+                <span className="text-xs text-gray-400">2 min atrás</span>
+              </li>
+              <li className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-green-100 text-green-600 rounded-full flex items-center justify-center">
+                    <DollarSign className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">Oferta registrada</p>
+                    <p className="text-xs text-gray-500">R$ 1.250,00 - Culto de domingo</p>
+                  </div>
+                </div>
+                <span className="text-xs text-gray-400">1 hora atrás</span>
+              </li>
+              <li className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center">
+                    <Heart className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">Reunião de célula</p>
+                    <p className="text-xs text-gray-500">Célula Esperança - 15 presentes</p>
+                  </div>
+                </div>
+                <span className="text-xs text-gray-400">2 horas atrás</span>
+              </li>
+            </ul>
+          </ModernCardContent>
+        </ModernCard>
 
-        {/* Upcoming Events */}
-        <div>
-          <ModernCard variant="elevated">
-            <ModernCardHeader>
-              <ModernCardTitle className="flex items-center gap-2">
-                <Calendar className="w-5 h-5 text-purple-600" />
-                Próximos Eventos
-              </ModernCardTitle>
-            </ModernCardHeader>
-            <ModernCardContent>
-              <div className="space-y-4">
-                {upcomingEvents.map((event, index) => (
-                  <div key={index} className="p-4 rounded-xl border border-gray-200 hover:border-purple-300 transition-colors">
-                    <h4 className="font-semibold text-gray-900 text-sm mb-2">
-                      {event.title}
-                    </h4>
-                    <div className="space-y-2 text-xs text-gray-600">
-                      <div className="flex items-center gap-2">
-                        <Clock className="w-3 h-3" />
-                        {event.date}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <MapPin className="w-3 h-3" />
-                        {event.location}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Users className="w-3 h-3" />
-                        {event.attendees} pessoas
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </ModernCardContent>
-          </ModernCard>
-        </div>
+        <ModernCard>
+          <ModernCardHeader>
+            <ModernCardTitle>Ações Rápidas</ModernCardTitle>
+          </ModernCardHeader>
+          <ModernCardContent>
+            <div className="space-y-3">
+              <ModernButton variant="primary" className="w-full" rightIcon={<ArrowRight className="w-4 h-4" />}>
+                Registrar Oferta
+              </ModernButton>
+              <ModernButton variant="secondary" className="w-full" rightIcon={<ArrowRight className="w-4 h-4" />}>
+                Novo Membro
+              </ModernButton>
+              <ModernButton variant="outline" className="w-full" rightIcon={<ArrowRight className="w-4 h-4" />}>
+                Lançar Presença
+              </ModernButton>
+            </div>
+          </ModernCardContent>
+        </ModernCard>
       </div>
 
-      {/* Quick Actions */}
-      <ModernCard variant="elevated">
+      {/* Charts Placeholder */}
+      <ModernCard>
         <ModernCardHeader>
-          <ModernCardTitle>Ações Rápidas</ModernCardTitle>
+          <ModernCardTitle>Gráficos de Tendência</ModernCardTitle>
         </ModernCardHeader>
-        <ModernCardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {[
-              { title: 'Novo Membro', icon: <UserPlus className="w-6 h-6" />, color: 'bg-blue-500' },
-              { title: 'Registrar Presença', icon: <Activity className="w-6 h-6" />, color: 'bg-green-500' },
-              { title: 'Nova Oferta', icon: <DollarSign className="w-6 h-6" />, color: 'bg-yellow-500' },
-              { title: 'Criar Evento', icon: <Calendar className="w-6 h-6" />, color: 'bg-purple-500' }
-            ].map((action, index) => (
-              <button
-                key={index}
-                className="p-6 rounded-xl border border-gray-200 hover:border-gray-300 hover:shadow-md transition-all duration-200 text-center group"
-              >
-                <div className={`w-12 h-12 ${action.color} rounded-xl flex items-center justify-center mx-auto mb-3 text-white group-hover:scale-110 transition-transform`}>
-                  {action.icon}
-                </div>
-                <p className="text-sm font-medium text-gray-900">
-                  {action.title}
-                </p>
-              </button>
-            ))}
-          </div>
+        <ModernCardContent className="h-64 flex items-center justify-center text-gray-400">
+          <p>Gráficos de tendência de membros, ofertas e presença virão aqui.</p>
         </ModernCardContent>
       </ModernCard>
     </div>
   )
 }
+
 
