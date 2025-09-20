@@ -1,23 +1,20 @@
+// src/middleware.ts
 import { withAuth } from 'next-auth/middleware'
 import { NextResponse } from 'next/server'
 import { hasPermission } from '@/types/auth'
 
+/**
+ * Middleware de autenticação + autorização.
+ * - Só roda nas rotas PROTEGIDAS (veja o matcher no final).
+ * - Usuário sem sessão: redireciona para /login (NÃO para /api/auth/signin).
+ * - Checa permissões por prefixo de rota.
+ */
 export default withAuth(
   function middleware(req) {
-    const token = req.nextauth.token
-    const pathname = req.nextUrl.pathname
+    const token = req.nextauth.token as any
+    const { pathname } = req.nextUrl
 
-    // Public routes
-    if (pathname.startsWith('/login') || pathname.startsWith('/api/auth')) {
-      return NextResponse.next()
-    }
-
-    // Check if user is authenticated
-    if (!token) {
-      return NextResponse.redirect(new URL('/login', req.url))
-    }
-
-    // Route-based permission checks
+    // ===== Regras de autorização por rota (ajuste conforme necessário) =====
     const routePermissions: Record<string, string[]> = {
       '/people': ['people:read'],
       '/services': ['attendance:read'],
@@ -26,34 +23,55 @@ export default withAuth(
       '/events': ['events:read'],
       '/communication': ['communication:read'],
       '/admin': ['users:read'],
-      '/reports': ['reports:read']
+      '/reports': ['reports:read'],
     }
 
-    // Check permissions for protected routes
-    for (const [route, permissions] of Object.entries(routePermissions)) {
-      if (pathname.startsWith(route)) {
-        const hasRequiredPermission = permissions.some(permission =>
-          hasPermission(token.role as any, permission)
-        )
-        
-        if (!hasRequiredPermission) {
+    // Se a rota tiver regra explícita, valida permissões do papel (role)
+    for (const [prefix, required] of Object.entries(routePermissions)) {
+      if (pathname.startsWith(prefix)) {
+        const role: string | undefined = token?.role
+        const allowed = required.some((perm) => {
+          try {
+            return hasPermission(role, perm)
+          } catch {
+            // Se houver qualquer falha inesperada, considere não autorizado
+            return false
+          }
+        })
+
+        if (!allowed) {
           return NextResponse.redirect(new URL('/unauthorized', req.url))
         }
+        break
       }
     }
 
     return NextResponse.next()
   },
   {
+    // Se NÃO estiver autenticado nas rotas protegidas (ver matcher), vai para /login
+    pages: { signIn: '/login' },
+
+    // Autorizado = tem token (aplicado SOMENTE nas rotas do matcher)
     callbacks: {
-      authorized: ({ token }) => !!token
-    }
+      authorized: ({ token }) => !!token,
+    },
   }
 )
 
+// ====== IMPORTANTE ======
+// Aplique o middleware APENAS nas rotas PROTEGIDAS.
+// NÃO inclua /login, /unauthorized, /api/auth, _next, nem assets públicos aqui.
 export const config = {
   matcher: [
-    '/((?!api/auth|_next/static|_next/image|favicon.ico|login|unauthorized).*)'
-  ]
+    '/people/:path*',
+    '/services/:path*',
+    '/groups/:path*',
+    '/offerings/:path*',
+    '/events/:path*',
+    '/communication/:path*',
+    '/admin/:path*',
+    '/reports/:path*',
+    // Se quiser proteger a home, crie um /dashboard e proteja apenas ele.
+  ],
 }
-

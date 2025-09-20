@@ -1,5 +1,5 @@
 import { Role } from '@prisma/client'
-import NextAuth from 'next-auth'
+import NextAuth, { DefaultSession } from 'next-auth'
 
 declare module 'next-auth' {
   interface Session {
@@ -15,8 +15,12 @@ declare module 'next-auth' {
         fullName: string
         photo?: string
       }
-      permissions: string[]
-    }
+      /**
+       * Permissões opcionais: marque como opcional para não quebrar o tipo
+       * quando não forem preenchidas no callback.
+       */
+      permissions?: string[]
+    } & DefaultSession['user']
   }
 
   interface User {
@@ -31,11 +35,15 @@ declare module 'next-auth' {
       fullName: string
       photo?: string
     }
+    permissions?: string[]
   }
 }
 
 declare module 'next-auth/jwt' {
   interface JWT {
+    id: string
+    email?: string
+    name?: string
     role: Role
     personId?: string
     person?: {
@@ -45,7 +53,6 @@ declare module 'next-auth/jwt' {
       fullName: string
       photo?: string
     }
-    permissions: string[]
+    permissions?: string[]
   }
 }
-

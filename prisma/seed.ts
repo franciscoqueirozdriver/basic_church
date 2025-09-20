@@ -1,384 +1,253 @@
-import { PrismaClient } from '@prisma/client'
+// prisma/seed.ts
 import bcrypt from 'bcryptjs'
+import {
+  PrismaClient,
+  Gender,
+  MaritalStatus,
+  Role,
+  PaymentMethod,
+  OfferingOrigin,
+  ServiceType,
+} from '@prisma/client'
 
 const prisma = new PrismaClient()
 
 async function main() {
   console.log('🌱 Iniciando seed do banco de dados...')
 
-  // Create campuses
-  const mainCampus = await prisma.campus.create({
-    data: {
-      name: 'Campus Principal',
-      address: 'Rua da Igreja, 123',
-      city: 'São Paulo',
-      state: 'SP',
-      zipCode: '01234-567',
-      phone: '(11) 1234-5678',
-      isActive: true
-    }
+  // ========= Campi (idempotente por name, mas name NÃO é unique no schema) =========
+  const ensureCampus = async (name: string, data: Omit<Parameters<typeof prisma.campus.create>[0]['data'], 'name'>) => {
+    const existing = await prisma.campus.findFirst({ where: { name } })
+    if (existing) return existing
+    return prisma.campus.create({ data: { name, ...data } })
+  }
+
+  const mainCampus = await ensureCampus('Sede Central', {
+    city: 'São Paulo',
+    state: 'SP',
+    isActive: true,
   })
 
-  const secondCampus = await prisma.campus.create({
-    data: {
-      name: 'Campus Norte',
-      address: 'Av. Norte, 456',
-      city: 'São Paulo',
-      state: 'SP',
-      zipCode: '02345-678',
-      phone: '(11) 2345-6789',
-      isActive: true
-    }
+  const zoneCampus = await ensureCampus('Zona Leste', {
+    city: 'São Paulo',
+    state: 'SP',
+    isActive: true,
   })
 
-  console.log('✅ Campus criados')
+  console.log('✅ Campi prontos')
 
-  // Create households
-  const household1 = await prisma.household.create({
-    data: {
-      name: 'Família Silva',
-      address: 'Rua das Flores, 789',
-      city: 'São Paulo',
-      state: 'SP',
-      zipCode: '03456-789'
+  // ========= Household (idempotente por name, mas name NÃO é unique no schema) =========
+  const ensureHousehold = async (name: string, data: Omit<Parameters<typeof prisma.household.create>[0]['data'], 'name'>) => {
+    const existing = await prisma.household.findFirst({ where: { name } })
+    if (existing) {
+      // opcional: atualizar alguns campos
+      return prisma.household.update({
+        where: { id: existing.id },
+        data,
+      })
     }
+    return prisma.household.create({ data: { name, ...data } })
+  }
+
+  const household = await ensureHousehold('Família Admin', {
+    address: 'Rua Admin, 1',
+    city: 'São Paulo',
+    state: 'SP',
+    zipCode: '01000-000',
+    phone: '(11) 99999-9999',
+    isActive: true,
   })
 
-  const household2 = await prisma.household.create({
-    data: {
-      name: 'Família Santos',
-      address: 'Av. Central, 321',
-      city: 'São Paulo',
-      state: 'SP',
-      zipCode: '04567-890'
-    }
-  })
+  console.log('✅ Household pronto')
 
-  console.log('✅ Famílias criadas')
+  // ========= Pessoa (Admin) – idempotente por email (único) =========
+  const adminEmail = 'admin@igreja.com'
 
-  // Create people
-  const people = []
-  
-  // Admin user
-  const adminPerson = await prisma.person.create({
-    data: {
+  const adminPerson = await prisma.person.upsert({
+    where: { email: adminEmail },
+    update: {
       firstName: 'Admin',
       lastName: 'Sistema',
       fullName: 'Admin Sistema',
-      email: 'admin@igreja.com',
       phone: '(11) 99999-9999',
-      birthDate: new Date('1980-01-01'),
-      gender: 'MALE',
-      maritalStatus: 'MARRIED',
+      birthDate: new Date('1980-01-01T00:00:00.000Z'),
+      gender: Gender.MASCULINO,
+      maritalStatus: MaritalStatus.CASADO,
       address: 'Rua Admin, 1',
       city: 'São Paulo',
       state: 'SP',
       zipCode: '01000-000',
-      joinDate: new Date('2020-01-01'),
+      joinDate: new Date('2020-01-01T00:00:00.000Z'),
       isActive: true,
-      householdId: household1.id
-    }
-  })
-
-  const adminUser = await prisma.user.create({
-    data: {
-      email: 'admin@igreja.com',
-      password: await bcrypt.hash('admin123', 10),
-      role: 'ADMIN',
-      isActive: true,
-      personId: adminPerson.id
-    }
-  })
-
-  people.push(adminPerson)
-
-  // Pastor
-  const pastorPerson = await prisma.person.create({
-    data: {
-      firstName: 'João',
-      lastName: 'Pastor',
-      fullName: 'João Pastor',
-      email: 'pastor@igreja.com',
-      phone: '(11) 98888-8888',
-      birthDate: new Date('1975-05-15'),
-      gender: 'MALE',
-      maritalStatus: 'MARRIED',
-      address: 'Rua Pastor, 2',
+      householdId: household.id,
+    },
+    create: {
+      firstName: 'Admin',
+      lastName: 'Sistema',
+      fullName: 'Admin Sistema',
+      email: adminEmail,
+      phone: '(11) 99999-9999',
+      birthDate: new Date('1980-01-01T00:00:00.000Z'),
+      gender: Gender.MASCULINO,
+      maritalStatus: MaritalStatus.CASADO,
+      address: 'Rua Admin, 1',
       city: 'São Paulo',
       state: 'SP',
-      zipCode: '01001-001',
-      joinDate: new Date('2018-01-01'),
-      baptismDate: new Date('2018-02-01'),
+      zipCode: '01000-000',
+      joinDate: new Date('2020-01-01T00:00:00.000Z'),
       isActive: true,
-      householdId: household1.id
-    }
+      householdId: household.id,
+    },
   })
+  console.log('✅ Pessoa admin pronta')
 
-  const pastorUser = await prisma.user.create({
-    data: {
-      email: 'pastor@igreja.com',
-      password: await bcrypt.hash('pastor123', 10),
-      role: 'PASTOR',
+  // ========= Usuário (Admin) – SEMPRE com senha BCRYPT =========
+  const plain = 'admin123'
+  const passwordHash = await bcrypt.hash(plain, 10)
+
+  await prisma.user.upsert({
+    where: { email: adminEmail },
+    update: {
+      password: passwordHash, // campo do seu schema é "password"
+      role: Role.ADMIN,
+      personId: adminPerson.id,
       isActive: true,
-      personId: pastorPerson.id
-    }
-  })
-
-  people.push(pastorPerson)
-
-  // Generate 28 more people
-  const firstNames = ['Maria', 'José', 'Ana', 'Carlos', 'Fernanda', 'Ricardo', 'Juliana', 'Pedro', 'Carla', 'Marcos', 'Luciana', 'Roberto', 'Patricia', 'Antonio', 'Mariana', 'Francisco', 'Camila', 'Manuel', 'Beatriz', 'João', 'Gabriela', 'Paulo', 'Renata', 'Luis', 'Daniela', 'Miguel', 'Adriana', 'Rafael']
-  const lastNames = ['Silva', 'Santos', 'Oliveira', 'Souza', 'Rodrigues', 'Ferreira', 'Alves', 'Pereira', 'Lima', 'Gomes', 'Costa', 'Ribeiro', 'Martins', 'Carvalho', 'Almeida', 'Lopes', 'Soares', 'Fernandes', 'Vieira', 'Barbosa', 'Rocha', 'Dias', 'Monteiro', 'Cardoso', 'Reis', 'Araújo', 'Nascimento', 'Freitas']
-
-  for (let i = 0; i < 28; i++) {
-    const firstName = firstNames[i % firstNames.length]
-    const lastName = lastNames[i % lastNames.length]
-    const fullName = `${firstName} ${lastName}`
-    
-    const person = await prisma.person.create({
-      data: {
-        firstName,
-        lastName,
-        fullName,
-        email: `${firstName.toLowerCase()}.${lastName.toLowerCase()}@email.com`,
-        phone: `(11) 9${String(Math.floor(Math.random() * 10000)).padStart(4, '0')}-${String(Math.floor(Math.random() * 10000)).padStart(4, '0')}`,
-        birthDate: new Date(1970 + Math.floor(Math.random() * 40), Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1),
-        gender: Math.random() > 0.5 ? 'MALE' : 'FEMALE',
-        maritalStatus: ['SINGLE', 'MARRIED', 'DIVORCED', 'WIDOWED'][Math.floor(Math.random() * 4)] as any,
-        address: `Rua ${lastName}, ${i + 10}`,
-        city: 'São Paulo',
-        state: 'SP',
-        zipCode: `${String(Math.floor(Math.random() * 100000)).padStart(5, '0')}-${String(Math.floor(Math.random() * 1000)).padStart(3, '0')}`,
-        joinDate: new Date(2020 + Math.floor(Math.random() * 4), Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1),
-        baptismDate: Math.random() > 0.3 ? new Date(2021 + Math.floor(Math.random() * 3), Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1) : null,
-        isActive: Math.random() > 0.1,
-        householdId: Math.random() > 0.5 ? household1.id : household2.id
-      }
-    })
-    
-    people.push(person)
-  }
-
-  console.log('✅ 30 pessoas criadas')
-
-  // Create groups
-  const group1 = await prisma.group.create({
-    data: {
-      name: 'Célula Jovens',
-      description: 'Grupo de jovens e adolescentes',
-      type: 'CELL',
-      schedule: 'Sábado 19:00',
-      location: 'Casa da Família Silva',
-      capacity: 20,
+    },
+    create: {
+      email: adminEmail,
+      password: passwordHash,
+      role: Role.ADMIN,
+      personId: adminPerson.id,
       isActive: true,
-      campusId: mainCampus.id
-    }
+    },
   })
+  console.log('✅ Usuário admin pronto (com senha BCRYPT)')
 
-  // Add members to group
-  for (let i = 0; i < 10; i++) {
-    await prisma.groupMember.create({
-      data: {
-        groupId: group1.id,
-        personId: people[i + 2].id, // Skip admin and pastor
-        role: i === 0 ? 'LEADER' : 'MEMBER',
-        joinedAt: new Date(2023, Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1)
-      }
-    })
-  }
+  // ========= Serviço exemplo (hoje) =========
+  const today = new Date()
+  const start = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 9, 0, 0, 0)
+  const end = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 11, 0, 0, 0)
 
-  console.log('✅ Grupo criado com membros')
-
-  // Create services
-  const service1 = await prisma.service.create({
-    data: {
-      name: 'Culto de Domingo Manhã',
-      type: 'WORSHIP',
-      date: new Date('2024-01-07T10:00:00'),
-      location: 'Santuário Principal',
-      capacity: 300,
-      campusId: mainCampus.id
-    }
-  })
-
-  const service2 = await prisma.service.create({
-    data: {
-      name: 'Culto de Domingo Noite',
-      type: 'WORSHIP',
-      date: new Date('2024-01-07T19:00:00'),
-      location: 'Santuário Principal',
-      capacity: 200,
-      campusId: mainCampus.id
-    }
-  })
-
-  console.log('✅ Serviços criados')
-
-  // Create attendance records
-  for (let i = 0; i < 15; i++) {
-    await prisma.attendance.create({
-      data: {
-        personId: people[i].id,
-        serviceId: service1.id,
-        status: Math.random() > 0.2 ? 'PRESENT' : 'ABSENT',
-        notes: Math.random() > 0.8 ? 'Primeira visita' : null
-      }
-    })
-  }
-
-  for (let i = 10; i < 25; i++) {
-    await prisma.attendance.create({
-      data: {
-        personId: people[i].id,
-        serviceId: service2.id,
-        status: Math.random() > 0.2 ? 'PRESENT' : 'ABSENT'
-      }
-    })
-  }
-
-  console.log('✅ Presenças registradas')
-
-  // Create offerings
-  const offering1 = await prisma.offering.create({
-    data: {
-      date: new Date('2024-01-07'),
-      origin: 'WORSHIP',
-      method: 'CASH',
-      amount: 125000, // R$ 1.250,00
-      description: 'Oferta do Culto de Domingo Manhã',
-      serviceId: service1.id,
+  let service = await prisma.service.findFirst({
+    where: {
+      name: 'Culto de Domingo',
       campusId: mainCampus.id,
-      createdBy: adminUser.id
-    }
+      date: {
+        gte: new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0, 0),
+        lt: new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1, 0, 0, 0, 0),
+      },
+    },
   })
 
-  const offering2 = await prisma.offering.create({
-    data: {
-      date: new Date('2024-01-07'),
-      origin: 'WORSHIP',
-      method: 'CARD',
-      amount: 89500, // R$ 895,00
-      description: 'Oferta do Culto de Domingo Noite',
-      serviceId: service2.id,
+  if (!service) {
+    service = await prisma.service.create({
+      data: {
+        name: 'Culto de Domingo',
+        description: 'Culto principal da semana',
+        type: ServiceType.CULTO,
+        date: start,
+        startTime: start,
+        endTime: end,
+        location: 'Auditório Central',
+        capacity: 300,
+        isActive: true,
+        campusId: mainCampus.id,
+      },
+    })
+    console.log('✅ Serviço criado')
+  } else {
+    console.log('ℹ️ Serviço já existia para hoje')
+  }
+
+  // ========= Presença do admin no culto (idempotente por pessoa/serviço) =========
+  const hasAttendance = await prisma.attendance.findFirst({
+    where: { personId: adminPerson.id, serviceId: service.id },
+  })
+  if (!hasAttendance) {
+    await prisma.attendance.create({
+      data: { personId: adminPerson.id, serviceId: service.id },
+    })
+    console.log('✅ Presença criada')
+  } else {
+    console.log('ℹ️ Presença já existia')
+  }
+
+  // ========= Oferta e Doação (evita duplicar) =========
+  let offering = await prisma.offering.findFirst({
+    where: {
+      serviceId: service.id,
       campusId: mainCampus.id,
-      createdBy: adminUser.id
-    }
+      amount: 5000,
+      origin: OfferingOrigin.CULTO,
+      method: PaymentMethod.PIX,
+    },
   })
 
-  // Create some donations
-  for (let i = 0; i < 10; i++) {
+  if (!offering) {
+    offering = await prisma.offering.create({
+      data: {
+        date: new Date(),
+        origin: OfferingOrigin.CULTO,
+        method: PaymentMethod.PIX,
+        amount: 5000, // R$ 50,00 em centavos
+        description: 'Oferta de abertura',
+        campusId: mainCampus.id,
+        serviceId: service.id,
+      },
+    })
+    console.log('✅ Oferta criada')
+  } else {
+    console.log('ℹ️ Oferta já existia')
+  }
+
+  const hasDonation = await prisma.donation.findFirst({
+    where: {
+      personId: adminPerson.id,
+      offeringId: offering.id,
+      amount: 5000,
+      method: PaymentMethod.PIX,
+    },
+  })
+
+  if (!hasDonation) {
     await prisma.donation.create({
       data: {
-        personId: people[i + 5].id,
-        offeringId: Math.random() > 0.5 ? offering1.id : offering2.id,
-        amount: Math.floor(Math.random() * 10000) + 1000, // R$ 10,00 to R$ 110,00
-        method: ['CASH', 'CARD', 'PIX'][Math.floor(Math.random() * 3)] as any,
-        date: new Date('2024-01-07'),
-        description: 'Doação pessoal'
-      }
+        personId: adminPerson.id,
+        offeringId: offering.id,
+        amount: 5000,
+        method: PaymentMethod.PIX,
+        date: new Date(),
+        description: 'Doação admin',
+      },
     })
+    console.log('✅ Doação criada')
+  } else {
+    console.log('ℹ️ Doação já existia')
   }
 
-  console.log('✅ Ofertas e doações criadas')
-
-  // Create an event
-  const event1 = await prisma.event.create({
-    data: {
-      name: 'Conferência de Jovens 2024',
-      description: 'Grande conferência para jovens com palestrantes nacionais',
-      type: 'CONFERENCE',
-      startDate: new Date('2024-03-15T19:00:00'),
-      endDate: new Date('2024-03-17T21:00:00'),
-      location: 'Centro de Convenções',
-      capacity: 500,
-      registrationRequired: true,
-      registrationDeadline: new Date('2024-03-10'),
-      price: 5000, // R$ 50,00
-      isActive: true,
-      campusId: mainCampus.id,
-      createdBy: adminUser.id
-    }
+  // ========= Config da igreja (idempotente pela PK) =========
+  await prisma.churchConfig.upsert({
+    where: { id: 'default-church-config' },
+    update: {
+      churchName: 'Igreja Exemplo',
+      description: 'Configuração inicial',
+      timezone: 'America/Sao_Paulo',
+      language: 'pt-BR',
+      currency: 'BRL',
+    },
+    create: {
+      id: 'default-church-config',
+      churchName: 'Igreja Exemplo',
+      description: 'Configuração inicial',
+      timezone: 'America/Sao_Paulo',
+      language: 'pt-BR',
+      currency: 'BRL',
+    },
   })
+  console.log('✅ ChurchConfig pronta')
 
-  // Create some registrations
-  for (let i = 0; i < 8; i++) {
-    await prisma.eventRegistration.create({
-      data: {
-        eventId: event1.id,
-        personId: people[i + 10].id,
-        status: 'CONFIRMED',
-        registeredAt: new Date('2024-01-15'),
-        notes: i === 0 ? 'Necessita transporte' : null
-      }
-    })
-  }
-
-  console.log('✅ Evento e inscrições criadas')
-
-  // Create communication templates
-  await prisma.communicationTemplate.create({
-    data: {
-      name: 'Boas-vindas - Novo Membro',
-      type: 'EMAIL',
-      category: 'WELCOME',
-      subject: 'Bem-vindo(a) à nossa igreja!',
-      content: `Olá {{nome}},
-
-É com grande alegria que damos as boas-vindas à nossa família da fé!
-
-Estamos muito felizes em tê-lo(a) conosco e esperamos que se sinta em casa.
-
-Com carinho,
-Equipe {{igreja}}`,
-      variables: ['nome', 'igreja'],
-      isActive: true,
-      createdById: adminUser.id
-    }
-  })
-
-  await prisma.communicationTemplate.create({
-    data: {
-      name: 'Lembrete de Grupo',
-      type: 'WHATSAPP',
-      category: 'CUSTOM',
-      content: `Olá {{nome}}! 😊
-
-Não esqueça do nosso encontro hoje às {{horario}} em {{local}}.
-
-Nos vemos lá! 🙏`,
-      variables: ['nome', 'horario', 'local'],
-      isActive: true,
-      createdById: adminUser.id
-    }
-  })
-
-  console.log('✅ Templates de comunicação criados')
-
-  // Create audit logs
-  await prisma.auditLog.create({
-    data: {
-      userId: adminUser.id,
-      action: 'CREATE',
-      table: 'people',
-      recordId: people[0].id,
-      newData: { name: people[0].fullName }
-    }
-  })
-
-  console.log('✅ Logs de auditoria criados')
-
-  console.log('🎉 Seed concluído com sucesso!')
-  console.log('\n📊 Dados criados:')
-  console.log(`- 2 campus`)
-  console.log(`- 2 famílias`)
-  console.log(`- 30 pessoas`)
-  console.log(`- 2 usuários (admin@igreja.com / admin123, pastor@igreja.com / pastor123)`)
-  console.log(`- 1 grupo com 10 membros`)
-  console.log(`- 2 cultos`)
-  console.log(`- Registros de presença`)
-  console.log(`- 2 ofertas com doações`)
-  console.log(`- 1 evento com 8 inscrições`)
-  console.log(`- 2 templates de comunicação`)
+  console.log('\n🎉 Seed finalizado com sucesso!')
+  console.log('   Login de teste ->', adminEmail, '/', plain, '\n')
 }
 
 main()
@@ -389,4 +258,3 @@ main()
   .finally(async () => {
     await prisma.$disconnect()
   })
-

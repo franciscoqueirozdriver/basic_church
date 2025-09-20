@@ -1,46 +1,83 @@
+// src/app/login/page.tsx
+"use client";
 
-'use client'
-
-import { useState } from 'react'
-import { signIn } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
-import { ModernButton } from '@/components/ui/ModernButton'
-import { ModernInput } from '@/components/ui/ModernInput'
-import { ModernCard, ModernCardContent, ModernCardHeader, ModernCardTitle } from '@/components/ui/ModernCard'
-import { Mail, Lock, Eye, EyeOff, LogIn, Church, ArrowRight } from 'lucide-react'
+import { useEffect, useMemo, useState } from "react";
+import { signIn } from "next-auth/react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { ModernButton } from "@/components/ui/ModernButton";
+import { ModernInput } from "@/components/ui/ModernInput";
+import {
+  ModernCard,
+  ModernCardContent,
+  ModernCardHeader,
+  ModernCardTitle,
+} from "@/components/ui/ModernCard";
+import { Mail, Lock, LogIn } from "lucide-react";
 
 export default function ModernLoginPage() {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [showPassword, setShowPassword] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const router = useRouter()
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [localError, setLocalError] = useState<string | null>(null);
+
+  // Captura callbackUrl (padrão: /dashboard, pode ajustar para "/")
+  const callbackUrl = useMemo(
+    () => searchParams.get("callbackUrl") || "/dashboard",
+    [searchParams]
+  );
+
+  // Se NextAuth colocou ?error=CredentialsSignin (ou outro) na URL, mostra mensagem
+  const authErrorFromQuery = searchParams.get("error");
+  useEffect(() => {
+    if (authErrorFromQuery) {
+      setLocalError(
+        authErrorFromQuery === "CredentialsSignin"
+          ? "Credenciais inválidas. Verifique seu e-mail e senha."
+          : "Não foi possível autenticar. Tente novamente."
+      );
+    }
+  }, [authErrorFromQuery]);
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-    setError(null)
+    e.preventDefault();
+    setLocalError(null);
 
+    if (!email || !password) {
+      setLocalError("Informe e-mail e senha.");
+      return;
+    }
+
+    setLoading(true);
     try {
-      const result = await signIn('credentials', {
+      const result = await signIn("credentials", {
         redirect: false,
         email,
         password,
-      })
+        callbackUrl,
+      });
 
-      if (result?.error) {
-        setError('Credenciais inválidas. Verifique seu e-mail e senha.')
-      } else {
-        router.push('/dashboard')
+      if (!result) {
+        setLocalError("Resposta inesperada do servidor. Tente novamente.");
+        return;
       }
+
+      if (result.error) {
+        setLocalError("Credenciais inválidas. Verifique seu e-mail e senha.");
+        return;
+      }
+
+      // Sucesso: navega para o callbackUrl resolvido pelo NextAuth
+      router.replace(result.url ?? callbackUrl);
     } catch (err) {
-      setError('Ocorreu um erro inesperado. Tente novamente.')
-      console.error(err)
+      console.error(err);
+      setLocalError("Ocorreu um erro inesperado. Tente novamente.");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-purple-50 p-4">
@@ -49,9 +86,14 @@ export default function ModernLoginPage() {
           <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
             <LogIn className="w-8 h-8 text-white" />
           </div>
-          <ModernCardTitle size="lg" className="text-gradient-primary">Bem-vindo de volta!</ModernCardTitle>
-          <p className="text-gray-600 mt-2">Digite suas credenciais para acessar o sistema.</p>
+          <ModernCardTitle size="lg" className="text-gradient-primary">
+            Bem-vindo de volta!
+          </ModernCardTitle>
+          <p className="text-gray-600 mt-2">
+            Digite suas credenciais para acessar o sistema.
+          </p>
         </ModernCardHeader>
+
         <ModernCardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
             <ModernInput
@@ -63,30 +105,24 @@ export default function ModernLoginPage() {
               leftIcon={<Mail className="w-5 h-5" />}
               variant="filled"
               required
+              autoComplete="email"
             />
+
             <ModernInput
               label="Senha"
-              type={showPassword ? 'text' : 'password'}
+              type="password"
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               leftIcon={<Lock className="w-5 h-5" />}
-              rightIcon={
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="text-gray-500 hover:text-gray-700 focus:outline-none"
-                >
-                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                </button>
-              }
               variant="filled"
               required
+              autoComplete="current-password"
             />
 
-            {error && (
+            {localError && (
               <div className="text-red-600 text-sm text-center bg-red-50 p-3 rounded-lg border border-red-200">
-                {error}
+                {localError}
               </div>
             )}
 
@@ -101,13 +137,14 @@ export default function ModernLoginPage() {
               Entrar
             </ModernButton>
           </form>
+
           <p className="mt-6 text-center text-sm text-gray-500">
-            Usuário de teste: <span className="font-semibold text-gray-700">admin@igreja.com</span> / <span className="font-semibold text-gray-700">admin123</span>
+            Usuário de teste:{" "}
+            <span className="font-semibold text-gray-700">admin@igreja.com</span>{" "}
+            / <span className="font-semibold text-gray-700">admin123</span>
           </p>
         </ModernCardContent>
       </ModernCard>
     </div>
-  )
+  );
 }
-
-
