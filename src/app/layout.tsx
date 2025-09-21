@@ -11,8 +11,8 @@ export const metadata: Metadata = {
   description: 'Sistema completo de gestão para igrejas',
   manifest: '/manifest.json',
   icons: {
-    icon: '/icon-192x192.png',
-    apple: '/icon-192x192.png',
+    icon: '/next.svg',
+    apple: '/next.svg',
   },
 }
 
