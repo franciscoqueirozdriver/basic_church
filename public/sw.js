@@ -1,4 +1,4 @@
-const CACHE_NAME = 'igreja-app-v1'
+const CACHE_NAME = 'igreja-app-v2'
 const urlsToCache = [
   '/',
   '/dashboard',
