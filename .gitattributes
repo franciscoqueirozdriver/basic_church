@@ -1,0 +1,21 @@
+﻿# Força LF no repo, Windows recebe CRLF ao checkout
+* text=auto eol=lf
+
+# Tipos comuns de texto
+*.ts text
+*.tsx text
+*.js text
+*.jsx text
+*.css text
+*.md text
+*.json text
+*.yml text
+*.yaml text
+
+# Binários
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
