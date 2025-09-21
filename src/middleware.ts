@@ -14,6 +14,11 @@ export default withAuth(
     const token = req.nextauth.token as any
     const { pathname } = req.nextUrl
 
+    // Se o usuário autenticado estiver na home, redireciona para o dashboard
+    if (pathname === '/') {
+      return NextResponse.redirect(new URL('/dashboard', req.url))
+    }
+
     // ===== Regras de autorização por rota (ajuste conforme necessário) =====
     const routePermissions: Record<string, string[]> = {
       '/people': ['people:read'],
@@ -64,6 +69,7 @@ export default withAuth(
 // NÃO inclua /login, /unauthorized, /api/auth, _next, nem assets públicos aqui.
 export const config = {
   matcher: [
+    '/', // Protege a home e redireciona
     '/people/:path*',
     '/services/:path*',
     '/groups/:path*',
