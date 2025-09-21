@@ -1,7 +1,8 @@
 import bcrypt from 'bcryptjs'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
-import { SessionUser } from '@/types/auth'
+import { SessionUser, ROLE_PERMISSIONS } from '@/types/auth'
+import { Role } from '@prisma/client'
 
 export async function hashPassword(password: string): Promise<string> {
   const saltRounds = 12
@@ -56,3 +57,29 @@ export function validatePassword(password: string): {
   }
 }
 
+
+export function hasPermission(userRole: Role, permission: string): boolean {
+  return ROLE_PERMISSIONS[userRole]?.includes(permission) || false
+}
+
+export function hasAnyPermission(userRole: Role, permissions: string[]): boolean {
+  return permissions.some(permission => hasPermission(userRole, permission))
+}
+
+export function hasAllPermissions(userRole: Role, permissions: string[]): boolean {
+  return permissions.every(permission => hasPermission(userRole, permission))
+}
+
+export async function requirePermission(permission: string): Promise<SessionUser> {
+  const user = await getCurrentUser()
+  
+  if (!user) {
+    throw new Error('Usuário não autenticado')
+  }
+  
+  if (!hasPermission(user.role, permission)) {
+    throw new Error('Permissão insuficiente')
+  }
+  
+  return user
+}

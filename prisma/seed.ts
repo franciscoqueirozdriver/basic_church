@@ -68,8 +68,8 @@ async function main() {
       email: 'admin@igreja.com',
       phone: '(11) 99999-9999',
       birthDate: new Date('1980-01-01'),
-      gender: 'MALE',
-      maritalStatus: 'MARRIED',
+      gender: 'MASCULINO',
+      maritalStatus: 'CASADO',
       address: 'Rua Admin, 1',
       city: 'São Paulo',
       state: 'SP',
@@ -101,8 +101,8 @@ async function main() {
       email: 'pastor@igreja.com',
       phone: '(11) 98888-8888',
       birthDate: new Date('1975-05-15'),
-      gender: 'MALE',
-      maritalStatus: 'MARRIED',
+      gender: 'MASCULINO',
+      maritalStatus: 'CASADO',
       address: 'Rua Pastor, 2',
       city: 'São Paulo',
       state: 'SP',
@@ -143,8 +143,8 @@ async function main() {
         email: `${firstName.toLowerCase()}.${lastName.toLowerCase()}@email.com`,
         phone: `(11) 9${String(Math.floor(Math.random() * 10000)).padStart(4, '0')}-${String(Math.floor(Math.random() * 10000)).padStart(4, '0')}`,
         birthDate: new Date(1970 + Math.floor(Math.random() * 40), Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1),
-        gender: Math.random() > 0.5 ? 'MALE' : 'FEMALE',
-        maritalStatus: ['SINGLE', 'MARRIED', 'DIVORCED', 'WIDOWED'][Math.floor(Math.random() * 4)] as any,
+        gender: Math.random() > 0.5 ? 'MASCULINO' : 'FEMININO',
+        maritalStatus: ['SOLTEIRO', 'CASADO', 'DIVORCIADO', 'VIUVO'][Math.floor(Math.random() * 4)] as any,
         address: `Rua ${lastName}, ${i + 10}`,
         city: 'São Paulo',
         state: 'SP',
@@ -166,8 +166,9 @@ async function main() {
     data: {
       name: 'Célula Jovens',
       description: 'Grupo de jovens e adolescentes',
-      type: 'CELL',
-      schedule: 'Sábado 19:00',
+      type: 'CELULA',
+      meetingDay: 6, // Saturday
+      meetingTime: '19:00',
       location: 'Casa da Família Silva',
       capacity: 20,
       isActive: true,
@@ -181,8 +182,7 @@ async function main() {
       data: {
         groupId: group1.id,
         personId: people[i + 2].id, // Skip admin and pastor
-        role: i === 0 ? 'LEADER' : 'MEMBER',
-        joinedAt: new Date(2023, Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1)
+        joinDate: new Date(2023, Math.floor(Math.random() * 12), Math.floor(Math.random() * 28) + 1)
       }
     })
   }
@@ -193,8 +193,10 @@ async function main() {
   const service1 = await prisma.service.create({
     data: {
       name: 'Culto de Domingo Manhã',
-      type: 'WORSHIP',
-      date: new Date('2024-01-07T10:00:00'),
+      type: 'CULTO',
+      date: new Date('2024-01-07'),
+      startTime: new Date('2024-01-07T10:00:00'),
+      endTime: new Date('2024-01-07T12:00:00'),
       location: 'Santuário Principal',
       capacity: 300,
       campusId: mainCampus.id
@@ -204,8 +206,10 @@ async function main() {
   const service2 = await prisma.service.create({
     data: {
       name: 'Culto de Domingo Noite',
-      type: 'WORSHIP',
-      date: new Date('2024-01-07T19:00:00'),
+      type: 'CULTO',
+      date: new Date('2024-01-07'),
+      startTime: new Date('2024-01-07T19:00:00'),
+      endTime: new Date('2024-01-07T21:00:00'),
       location: 'Santuário Principal',
       capacity: 200,
       campusId: mainCampus.id
@@ -220,7 +224,7 @@ async function main() {
       data: {
         personId: people[i].id,
         serviceId: service1.id,
-        status: Math.random() > 0.2 ? 'PRESENT' : 'ABSENT',
+        status: Math.random() > 0.2 ? 'PRESENTE' : 'AUSENTE',
         notes: Math.random() > 0.8 ? 'Primeira visita' : null
       }
     })
@@ -231,7 +235,7 @@ async function main() {
       data: {
         personId: people[i].id,
         serviceId: service2.id,
-        status: Math.random() > 0.2 ? 'PRESENT' : 'ABSENT'
+        status: Math.random() > 0.2 ? 'PRESENTE' : 'AUSENTE'
       }
     })
   }
@@ -242,8 +246,8 @@ async function main() {
   const offering1 = await prisma.offering.create({
     data: {
       date: new Date('2024-01-07'),
-      origin: 'WORSHIP',
-      method: 'CASH',
+      origin: 'CULTO',
+      method: 'DINHEIRO',
       amount: 125000, // R$ 1.250,00
       description: 'Oferta do Culto de Domingo Manhã',
       serviceId: service1.id,
@@ -255,8 +259,8 @@ async function main() {
   const offering2 = await prisma.offering.create({
     data: {
       date: new Date('2024-01-07'),
-      origin: 'WORSHIP',
-      method: 'CARD',
+      origin: 'CULTO',
+      method: 'CARTAO',
       amount: 89500, // R$ 895,00
       description: 'Oferta do Culto de Domingo Noite',
       serviceId: service2.id,
@@ -272,7 +276,7 @@ async function main() {
         personId: people[i + 5].id,
         offeringId: Math.random() > 0.5 ? offering1.id : offering2.id,
         amount: Math.floor(Math.random() * 10000) + 1000, // R$ 10,00 to R$ 110,00
-        method: ['CASH', 'CARD', 'PIX'][Math.floor(Math.random() * 3)] as any,
+        method: ['DINHEIRO', 'CARTAO', 'PIX'][Math.floor(Math.random() * 3)] as any,
         date: new Date('2024-01-07'),
         description: 'Doação pessoal'
       }
@@ -286,7 +290,7 @@ async function main() {
     data: {
       name: 'Conferência de Jovens 2024',
       description: 'Grande conferência para jovens com palestrantes nacionais',
-      type: 'CONFERENCE',
+
       startDate: new Date('2024-03-15T19:00:00'),
       endDate: new Date('2024-03-17T21:00:00'),
       location: 'Centro de Convenções',
@@ -306,7 +310,7 @@ async function main() {
       data: {
         eventId: event1.id,
         personId: people[i + 10].id,
-        status: 'CONFIRMED',
+        status: 'CONFIRMADO',
         registeredAt: new Date('2024-01-15'),
         notes: i === 0 ? 'Necessita transporte' : null
       }

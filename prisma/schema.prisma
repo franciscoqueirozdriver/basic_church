@@ -8,6 +8,7 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 // Enums
@@ -560,3 +561,61 @@ model FeatureFlag {
   
   @@map("feature_flags")
 }
+
+
+// Church Configuration Model
+model ChurchConfig {
+  id          String   @id @default(cuid())
+  
+  // Basic Info
+  churchName  String?
+  description String?
+  
+  // Logo Configuration
+  logoUrl     String?
+  logoWidth   Int?     @default(120)
+  logoHeight  Int?     @default(40)
+  logoPosition String? @default("header-left") // header-left, header-center, sidebar-top, sidebar-bottom
+  
+  // Color Palette Configuration
+  primaryColor     String? @default("#3b82f6")
+  secondaryColor   String? @default("#a855f7")
+  accentColor      String? @default("#22c55e")
+  backgroundColor  String? @default("#ffffff")
+  textColor        String? @default("#1f2937")
+  
+  // Color Palette Metadata
+  colorPaletteSource String? // "default", "logo-extracted", "custom"
+  logoColorAnalysis  Json?   // Stores extracted colors from logo
+  
+  // Theme Configuration
+  isDarkMode       Boolean @default(false)
+  customCssVars    Json?   // Additional CSS variables
+  
+  // Contact Information
+  address     String?
+  phone       String?
+  email       String?
+  website     String?
+  
+  // Social Media
+  facebook    String?
+  instagram   String?
+  youtube     String?
+  
+  // System Configuration
+  timezone    String? @default("America/Sao_Paulo")
+  language    String? @default("pt-BR")
+  currency    String? @default("BRL")
+  
+  // Timestamps
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Audit
+  createdBy   String?
+  updatedBy   String?
+  
+  @@map("church_config")
+}
+
