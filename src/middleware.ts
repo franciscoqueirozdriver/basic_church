@@ -69,7 +69,6 @@ export default withAuth(
 // NÃO inclua /login, /unauthorized, /api/auth, _next, nem assets públicos aqui.
 export const config = {
   matcher: [
-    '/', // Protege a home e redireciona
     '/people/:path*',
     '/services/:path*',
     '/groups/:path*',
