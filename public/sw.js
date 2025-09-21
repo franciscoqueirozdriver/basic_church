@@ -3,11 +3,6 @@ const urlsToCache = [
   '/',
   '/dashboard',
   '/login',
-  '/people',
-  '/services',
-  '/groups',
-  '/offerings',
-  '/events',
   '/manifest.json'
 ]
 
