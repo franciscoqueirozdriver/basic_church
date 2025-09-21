@@ -68,8 +68,8 @@ async function doBackgroundSync() {
 self.addEventListener('push', (event) => {
   const options = {
     body: event.data ? event.data.text() : 'Nova notificação',
-    icon: '/icon-192x192.png',
-    badge: '/icon-72x72.png',
+    icon: '/next.svg',
+    badge: '/next.svg',
     vibrate: [100, 50, 100],
     data: {
       dateOfArrival: Date.now(),
@@ -79,12 +79,12 @@ self.addEventListener('push', (event) => {
       {
         action: 'explore',
         title: 'Ver detalhes',
-        icon: '/icon-96x96.png'
+        icon: '/next.svg'
       },
       {
         action: 'close',
         title: 'Fechar',
-        icon: '/icon-96x96.png'
+        icon: '/next.svg'
       }
     ]
   }
