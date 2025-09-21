@@ -76,7 +76,7 @@
   }
 
   * {
-    @apply border-border;
+    border-color: rgb(var(--color-neutral-200));
   }
 
   body {
