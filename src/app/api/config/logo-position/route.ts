@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { hasPermission } from '@/utils/auth';
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,7 +12,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if user has admin permissions
-    if (!hasPermission(session.user.role, ['ADMIN'])) {
+    if (session.user.role !== 'ADMIN') {
       return NextResponse.json({ 
         error: 'Permissão insuficiente. Apenas administradores podem alterar configurações.' 
       }, { status: 403 });
