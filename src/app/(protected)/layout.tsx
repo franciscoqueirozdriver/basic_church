@@ -3,7 +3,7 @@
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
-import { MainLayout } from '@/components/layout/MainLayout'
+import { ModernLayout } from '@/components/layout/ModernLayout'
 
 export default function ProtectedLayout({
   children,
@@ -34,6 +34,6 @@ export default function ProtectedLayout({
     return null
   }
 
-  return <MainLayout>{children}</MainLayout>
+  return <ModernLayout>{children}</ModernLayout>
 }
 
