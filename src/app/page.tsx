@@ -1,26 +1,14 @@
-'use client'
+import Link from 'next/link';
 
-import { useSession } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
-import { useEffect } from 'react'
-
-export default function HomePage() {
-  const { data: session, status } = useSession()
-  const router = useRouter()
-
-  useEffect(() => {
-    if (status === 'loading') return
-
-    if (session) {
-      router.push('/dashboard')
-    } else {
-      router.push('/login')
-    }
-  }, [session, status, router])
-
+export default function Home() {
   return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-    </div>
-  )
+    <main className="flex min-h-screen flex-col items-center justify-center p-24">
+      <h1 className="text-4xl font-bold mb-8">Church Management System</h1>
+      <Link href="/dashboard">
+        <button className="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors">
+          Go to Dashboard
+        </button>
+      </Link>
+    </main>
+  );
 }

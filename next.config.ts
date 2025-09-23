@@ -1,12 +1,15 @@
-import type { NextConfig } from "next";
-
-const nextConfig: NextConfig = {
-  eslint: {
-    ignoreDuringBuilds: true,
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  experimental: {
+    turbo: {
+      rules: {
+        '*.svg': {
+          loaders: ['@svgr/webpack'],
+          as: '*.js',
+        },
+      },
+    },
   },
-  typescript: {
-    ignoreBuildErrors: true,
-  },
-};
+}
 
-export default nextConfig;
+module.exports = nextConfig
