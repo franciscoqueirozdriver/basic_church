@@ -1,59 +1,37 @@
 import { withAuth } from 'next-auth/middleware'
 import { NextResponse } from 'next/server'
-import { hasPermission } from '@/types/auth'
 
 export default withAuth(
   function middleware(req) {
     const token = req.nextauth.token
-    const pathname = req.nextUrl.pathname
+    const isAuth = !!token
+    const isAuthPage = req.nextUrl.pathname.startsWith('/login')
 
-    // Public routes
-    if (pathname.startsWith('/login') || pathname.startsWith('/api/auth')) {
-      return NextResponse.next()
-    }
-
-    // Check if user is authenticated
-    if (!token) {
-      return NextResponse.redirect(new URL('/login', req.url))
-    }
-
-    // Route-based permission checks
-    const routePermissions: Record<string, string[]> = {
-      '/people': ['people:read'],
-      '/services': ['attendance:read'],
-      '/groups': ['groups:read'],
-      '/offerings': ['offerings:read'],
-      '/events': ['events:read'],
-      '/communication': ['communication:read'],
-      '/admin': ['users:read'],
-      '/reports': ['reports:read']
-    }
-
-    // Check permissions for protected routes
-    for (const [route, permissions] of Object.entries(routePermissions)) {
-      if (pathname.startsWith(route)) {
-        const hasRequiredPermission = permissions.some(permission =>
-          hasPermission(token.role as any, permission)
-        )
-        
-        if (!hasRequiredPermission) {
-          return NextResponse.redirect(new URL('/unauthorized', req.url))
-        }
+    if (isAuthPage) {
+      if (isAuth) {
+        return NextResponse.redirect(new URL('/dashboard', req.url))
       }
+      return null
     }
 
-    return NextResponse.next()
+    if (!isAuth) {
+      let from = req.nextUrl.pathname
+      if (req.nextUrl.search) {
+        from += req.nextUrl.search
+      }
+
+      return NextResponse.redirect(
+        new URL(`/login?from=${encodeURIComponent(from)}`, req.url)
+      )
+    }
   },
   {
     callbacks: {
-      authorized: ({ token }) => !!token
+      authorized: () => true
     }
   }
 )
 
 export const config = {
-  matcher: [
-    '/((?!api/auth|_next/static|_next/image|favicon.ico|login|unauthorized).*)'
-  ]
+  matcher: ['/dashboard/:path*', '/people/:path*', '/services/:path*', '/groups/:path*', '/offerings/:path*', '/events/:path*', '/settings/:path*', '/login']
 }
-

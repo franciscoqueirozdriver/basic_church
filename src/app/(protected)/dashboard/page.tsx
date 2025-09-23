@@ -1,4 +1,3 @@
-
 'use client'
 
 import { ModernCard, ModernCardContent, ModernCardHeader, ModernCardTitle } from '@/components/ui/ModernCard'
@@ -129,5 +128,3 @@ export default function ModernDashboardPage() {
     </div>
   )
 }
-
-

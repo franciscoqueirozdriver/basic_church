@@ -1,85 +1,57 @@
-import bcrypt from 'bcryptjs'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
-import { SessionUser, ROLE_PERMISSIONS } from '@/types/auth'
 import { Role } from '@prisma/client'
 
-export async function hashPassword(password: string): Promise<string> {
-  const saltRounds = 12
-  return bcrypt.hash(password, saltRounds)
+export const roleHierarchy: Record<Role, number> = {
+  ADMIN: 6,
+  PASTOR: 5,
+  LEADER: 4,
+  TREASURER: 3,
+  SECRETARY: 2,
+  MEMBER: 1
 }
 
-export async function verifyPassword(password: string, hashedPassword: string): Promise<boolean> {
-  return bcrypt.compare(password, hashedPassword)
+export const permissions: Record<string, Role[]> = {
+  // Dashboard
+  VIEW_DASHBOARD: [Role.ADMIN, Role.PASTOR, Role.LEADER, Role.TREASURER, Role.SECRETARY, Role.MEMBER],
+  
+  // People management
+  VIEW_PEOPLE: [Role.ADMIN, Role.PASTOR, Role.LEADER, Role.SECRETARY],
+  CREATE_PEOPLE: [Role.ADMIN, Role.PASTOR, Role.SECRETARY],
+  EDIT_PEOPLE: [Role.ADMIN, Role.PASTOR, Role.SECRETARY],
+  DELETE_PEOPLE: [Role.ADMIN, Role.PASTOR],
+  
+  // Services
+  VIEW_SERVICES: [Role.ADMIN, Role.PASTOR, Role.LEADER, Role.SECRETARY],
+  CREATE_SERVICES: [Role.ADMIN, Role.PASTOR, Role.SECRETARY],
+  EDIT_SERVICES: [Role.ADMIN, Role.PASTOR, Role.SECRETARY],
+  DELETE_SERVICES: [Role.ADMIN, Role.PASTOR],
+  
+  // Groups
+  VIEW_GROUPS: [Role.ADMIN, Role.PASTOR, Role.LEADER],
+  CREATE_GROUPS: [Role.ADMIN, Role.PASTOR],
+  EDIT_GROUPS: [Role.ADMIN, Role.PASTOR, Role.LEADER],
+  DELETE_GROUPS: [Role.ADMIN, Role.PASTOR],
+  
+  // Offerings
+  VIEW_OFFERINGS: [Role.ADMIN, Role.PASTOR, Role.TREASURER],
+  CREATE_OFFERINGS: [Role.ADMIN, Role.PASTOR, Role.TREASURER],
+  EDIT_OFFERINGS: [Role.ADMIN, Role.PASTOR, Role.TREASURER],
+  DELETE_OFFERINGS: [Role.ADMIN, Role.PASTOR],
+  
+  // Events
+  VIEW_EVENTS: [Role.ADMIN, Role.PASTOR, Role.LEADER, Role.SECRETARY, Role.MEMBER],
+  CREATE_EVENTS: [Role.ADMIN, Role.PASTOR, Role.SECRETARY],
+  EDIT_EVENTS: [Role.ADMIN, Role.PASTOR, Role.SECRETARY],
+  DELETE_EVENTS: [Role.ADMIN, Role.PASTOR],
+  
+  // Settings
+  VIEW_SETTINGS: [Role.ADMIN, Role.PASTOR],
+  EDIT_SETTINGS: [Role.ADMIN]
 }
 
-export async function getCurrentUser(): Promise<SessionUser | null> {
-  const session = await getServerSession(authOptions)
-  return session?.user as SessionUser || null
+export function hasPermission(userRole: Role, permission: keyof typeof permissions): boolean {
+  return permissions[permission].includes(userRole)
 }
 
-export function generateRandomPassword(length: number = 12): string {
-  const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*'
-  let password = ''
-  
-  for (let i = 0; i < length; i++) {
-    password += charset.charAt(Math.floor(Math.random() * charset.length))
-  }
-  
-  return password
-}
-
-export function validatePassword(password: string): {
-  isValid: boolean
-  errors: string[]
-} {
-  const errors: string[] = []
-  
-  if (password.length < 8) {
-    errors.push('A senha deve ter pelo menos 8 caracteres')
-  }
-  
-  if (!/[A-Z]/.test(password)) {
-    errors.push('A senha deve conter pelo menos uma letra maiúscula')
-  }
-  
-  if (!/[a-z]/.test(password)) {
-    errors.push('A senha deve conter pelo menos uma letra minúscula')
-  }
-  
-  if (!/\d/.test(password)) {
-    errors.push('A senha deve conter pelo menos um número')
-  }
-  
-  return {
-    isValid: errors.length === 0,
-    errors
-  }
-}
-
-
-export function hasPermission(userRole: Role, permission: string): boolean {
-  return ROLE_PERMISSIONS[userRole]?.includes(permission) || false
-}
-
-export function hasAnyPermission(userRole: Role, permissions: string[]): boolean {
-  return permissions.some(permission => hasPermission(userRole, permission))
-}
-
-export function hasAllPermissions(userRole: Role, permissions: string[]): boolean {
-  return permissions.every(permission => hasPermission(userRole, permission))
-}
-
-export async function requirePermission(permission: string): Promise<SessionUser> {
-  const user = await getCurrentUser()
-  
-  if (!user) {
-    throw new Error('Usuário não autenticado')
-  }
-  
-  if (!hasPermission(user.role, permission)) {
-    throw new Error('Permissão insuficiente')
-  }
-  
-  return user
+export function hasMinimumRole(userRole: Role, minimumRole: Role): boolean {
+  return roleHierarchy[userRole] >= roleHierarchy[minimumRole]
 }
